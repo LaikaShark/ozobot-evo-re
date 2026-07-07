@@ -1,0 +1,11 @@
+\ Evo audio: play three MIDI notes, then read the battery and blink on low.
+\ `note` converts a MIDI number to a frequency pair; `beep` plays (dur, flag).
+evo
+60 note  30 0 beep-wait      \ middle C, 300ms, blocking
+64 note  30 0 beep-wait      \ E
+67 note  50 0 beep-wait      \ G, 500ms
+
+\ light the LED red if the battery register reads low
+REG_BATTERY readReg  20 <
+if  127 0 0 led  then
+OFF end

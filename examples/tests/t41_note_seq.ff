@@ -1,0 +1,6 @@
+\ T41 three notes C-E-G in sequence via beep-wait (blocking). Should hear a rising arpeggio.
+evo
+60 note 40 0 beep-wait
+64 note 40 0 beep-wait
+67 note 60 0 beep-wait
+OFF end

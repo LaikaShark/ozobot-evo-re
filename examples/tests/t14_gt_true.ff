@@ -1,0 +1,4 @@
+\ T14 7 > 3 is TRUE -> GREEN.
+evo
+7 3 > if 0 127 0 led else 127 0 0 led then
+forever 100 wait loop

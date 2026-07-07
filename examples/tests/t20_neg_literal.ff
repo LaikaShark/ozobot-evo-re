@@ -1,0 +1,5 @@
+\ T20 KEY: -5 + 5 == 0 -> GREEN. Proves the negative-literal fix (0x83 ~, not 0x8b neg).
+\ On the OLD build (-5 encoded as neg) this would compute -4 and show RED.
+evo
+-5 5 + 0 = if 0 127 0 led else 127 0 0 led then
+forever 100 wait loop

@@ -1,0 +1,7 @@
+\ T70 (robot A, needs 2 robots): enable front emitter, broadcast value 55 forever.
+evo
+127 REG_IR_EMITTER 0 + writeReg
+forever
+  55 REG_IR_MSG 0 + writeReg
+  20 wait
+loop

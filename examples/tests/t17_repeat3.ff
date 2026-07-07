@@ -1,0 +1,7 @@
+\ T17 blink GREEN exactly 3 times. Count them. Tests repeat/loop (+ required drop).
+evo
+3 repeat
+  0 127 0 led  50 wait  0 0 0 led  50 wait
+loop
+drop
+OFF end

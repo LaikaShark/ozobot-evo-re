@@ -1,0 +1,4 @@
+\ T12 20 mod 6 == 2 -> GREEN.
+evo
+20 6 mod 2 = if 0 127 0 led else 127 0 0 led then
+forever 100 wait loop

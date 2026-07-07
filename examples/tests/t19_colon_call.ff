@@ -1,0 +1,5 @@
+\ T19 define :grn and call it -> GREEN. Tests colon def + call/;.
+evo
+:grn 0 127 0 led ;
+grn
+forever 100 wait loop

@@ -1,0 +1,4 @@
+\ T15 3 > 7 is FALSE -> GREEN (false-branch check).
+evo
+3 7 > if 127 0 0 led else 0 127 0 led then
+forever 100 wait loop

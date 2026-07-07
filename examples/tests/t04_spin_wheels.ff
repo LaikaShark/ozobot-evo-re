@@ -1,0 +1,4 @@
+\ T04 spin ~1.5s (left fwd 30, right reverse 30), then stop. Tests wheels + negative wheel.
+evo
+30 -30 wheels  100 wait  0 0 wheels
+OFF end

@@ -1,0 +1,5 @@
+\ T23 KEY: readReg (0xce) is bank 2 -> header V must be 2. If V computes right and the
+\ robot accepts it, battery>0 -> GREEN. If the program is rejected, NOTHING happens.
+evo
+REG_BATTERY readReg 0 > if 0 127 0 led else 127 0 0 led then
+forever 100 wait loop

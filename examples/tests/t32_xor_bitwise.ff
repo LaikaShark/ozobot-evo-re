@@ -1,0 +1,4 @@
+\ T32 6 ^ 3 == 5 -> GREEN (bitwise XOR 0x84).
+evo
+6 3 ^ 5 = if 0 127 0 led else 127 0 0 led then
+forever 100 wait loop

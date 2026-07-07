@@ -1,0 +1,11 @@
+\ T60 INTERACTIVE: capture the top button, then GREEN once it has been pressed.
+\ The button MUST be captured first (write 1 to addr 0x1a via `set`) or presses go
+\ to the robot's default handler and never reach the program -- that was why the
+\ earlier version never lit. Ground truth: OzoBlockly's "capture button press =
+\ true" block compiles to `1 26 set` (captured + disassembled from a real flash).
+evo
+TRUE BUTTON_CAPTURE set
+forever
+  EV_BUTTON checkEvent 0 >  if 0 127 0 led then
+  20 wait
+loop

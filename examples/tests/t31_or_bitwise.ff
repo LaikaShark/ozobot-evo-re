@@ -1,0 +1,4 @@
+\ T31 4 | 1 == 5 -> GREEN (bitwise OR 0x82).
+evo
+4 1 | 5 = if 0 127 0 led else 127 0 0 led then
+forever 100 wait loop

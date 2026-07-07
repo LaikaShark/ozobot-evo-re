@@ -1,0 +1,5 @@
+\ T24 beep-wait (0xd3) is bank 5 -> header V must be 5. Hear a tone, then GREEN.
+evo
+60 note 50 0 beep-wait
+0 127 0 led
+forever 100 wait loop

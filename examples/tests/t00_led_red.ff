@@ -1,0 +1,6 @@
+\ T00 solid RED led. Validates the whole flash+decode pipeline.
+\ Needs a hold: `end` (OFF mode) kills the LED, so without a wait the
+\ red shows for microseconds and is never visible. t01 proves red works.
+evo
+127 0 0 led  100 wait 100 wait 100 wait
+OFF end

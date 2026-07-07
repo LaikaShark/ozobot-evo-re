@@ -1,0 +1,15 @@
+\ T80 (needs a black line with an intersection): follow the line to the next
+\ intersection, stop, and turn GREEN.
+\
+\ The raw `next-intersection` (0xd4) reaches the intersection but never hands control
+\ back, so the LED never lit. OzoBlockly's real "go to next intersection" block is NOT
+\ that primitive -- its VM generator emits  setLineFollowing(true); waitForEvent(INTER-
+\ SECTION); setLineFollowing(false).  We reproduce that with the proven checkEvent poll
+\ (same structure as T60): follow the line, and when EV_INTERSECTION reads nonzero, stop
+\ following and light green. V=1 (no bank-5 primitive needed).
+evo
+TRUE lineFollow
+forever
+  EV_INTERSECTION checkEvent 0 >  if  FALSE lineFollow  0 127 0 led  then
+  2 wait
+loop

@@ -1,0 +1,13 @@
+\ Evo infrared messaging: enable the front emitter, send a value, then act on
+\ any message received. IR comm is register access at a per-sensor offset:
+\   send  : value  REG_IR_MSG proxId +  writeReg
+\   read  : REG_IR_RECV proxId +  readReg
+evo
+127 REG_IR_EMITTER 0 +  writeReg   \ enable emitter on proximity sensor 0
+42  REG_IR_MSG 0 +      writeReg   \ broadcast the value 42
+
+REG_IR_RECV 0 +  readReg           \ read message from sensor 0
+dup 42 =                            \ did we hear our own value back?
+if  0 127 0 led  then
+drop
+OFF end

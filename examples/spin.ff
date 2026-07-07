@@ -1,0 +1,5 @@
+\ Spin in place forever, reversing every ~1.3s.
+forever
+  127 -127 wheels  127 wait
+  -127 127 wheels  127 wait
+loop

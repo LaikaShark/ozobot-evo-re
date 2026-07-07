@@ -1,0 +1,4 @@
+\ T02 drive forward ~50 mm at 30 mm/s.
+evo
+50 30 move
+OFF end

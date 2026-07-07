@@ -1,0 +1,6 @@
+\ T01 blink RED, GREEN, BLUE 1s each. Validates wait timing + repeated led.
+evo
+127 0 0 led  100 wait
+0 127 0 led  100 wait
+0 0 127 led  100 wait
+OFF end

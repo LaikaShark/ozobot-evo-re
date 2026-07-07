@@ -1,0 +1,4 @@
+\ T13 17 / 5 == 3 (integer) -> GREEN.
+evo
+17 5 / 3 = if 0 127 0 led else 127 0 0 led then
+forever 100 wait loop

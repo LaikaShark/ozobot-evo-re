@@ -1,0 +1,4 @@
+\ T30 6 & 3 == 2 -> GREEN (bitwise AND 0x81).
+evo
+6 3 & 2 = if 0 127 0 led else 127 0 0 led then
+forever 100 wait loop

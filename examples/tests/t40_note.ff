@@ -1,0 +1,5 @@
+\ T40 play MIDI note 60 (middle C) for 0.5s, non-blocking. Must stay alive to be audible.
+evo
+60 note 50 0 beep
+100 wait
+OFF end

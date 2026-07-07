@@ -1,0 +1,15 @@
+\ T52 (needs a RED surface): read the surface color; GREEN if it reads RED, else RED.
+\
+\ Read the value with `get` (0x92), NOT `checkEvent` (0xcc, the change/event register).
+\ Address 0x0e (=14=`COLOR`) is the surface color; codes match our constants (ground truth
+\ `rf()`: BLACK RED GREEN YELLOW BLUE MAGENTA CYAN WHITE = 0..7), so red surface == RED == 1.
+\
+\ CRITICAL: the read must be INSIDE the forever loop so it re-reads every iteration. Earlier
+\ versions read once *before* the loop -- but at program start the robot is still on the
+\ flashing screen, so it latched the screen color and never updated when moved to paper.
+\ This loop body is now byte-for-byte identical to OzoBlockly's working "repeat forever /
+\ if surface color is Red" program (`0e 92 01 a4 ... ba ee 97`).
+evo
+forever
+  COLOR get RED = if 0 127 0 led else 127 0 0 led then
+loop

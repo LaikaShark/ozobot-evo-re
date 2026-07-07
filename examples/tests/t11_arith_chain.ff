@@ -1,0 +1,4 @@
+\ T11 (2+3)*4 == 20 -> GREEN. Tests + and *.
+evo
+2 3 + 4 * 20 = if 0 127 0 led else 127 0 0 led then
+forever 100 wait loop

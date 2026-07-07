@@ -1,0 +1,4 @@
+\ T10 2+3 == 5 -> GREEN.
+evo
+2 3 + 5 = if 0 127 0 led else 127 0 0 led then
+forever 100 wait loop

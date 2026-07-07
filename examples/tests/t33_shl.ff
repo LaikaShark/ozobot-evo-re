@@ -1,0 +1,4 @@
+\ T33 HYPOTHESIS: shl shifts left by one (x2). 3 shl == 6 -> GREEN. Characterizes 0xbc.
+evo
+3 shl 6 = if 0 127 0 led else 127 0 0 led then
+forever 100 wait loop

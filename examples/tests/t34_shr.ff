@@ -1,0 +1,4 @@
+\ T34 HYPOTHESIS: shr shifts right by one (/2). 12 shr == 6 -> GREEN. Characterizes 0xbd.
+evo
+12 shr 6 = if 0 127 0 led else 127 0 0 led then
+forever 100 wait loop

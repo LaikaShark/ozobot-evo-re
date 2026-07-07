@@ -1,0 +1,4 @@
+\ T16 (1 and 0) == 0 -> GREEN. Tests logical and.
+evo
+1 0 and 0 = if 0 127 0 led else 127 0 0 led then
+forever 100 wait loop

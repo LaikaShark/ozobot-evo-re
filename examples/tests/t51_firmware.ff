@@ -1,0 +1,4 @@
+\ T51 firmware register reads nonzero -> GREEN. Proves readReg returns real data.
+evo
+REG_FIRMWARE readReg 0 > if 0 127 0 led else 127 0 0 led then
+forever 100 wait loop

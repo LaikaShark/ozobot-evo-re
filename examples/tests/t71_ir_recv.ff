@@ -1,0 +1,6 @@
+\ T71 (robot B, needs 2 robots): loop reading sensor 0; GREEN when it receives 55.
+evo
+forever
+  REG_IR_RECV 0 + readReg  55 =  if 0 127 0 led then
+  20 wait
+loop

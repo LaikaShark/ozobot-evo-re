@@ -1,0 +1,12 @@
+\ T81 shared-variable round-trip: store 42 into shared register 0, read it back,
+\ GREEN if equal (RED if not).
+\
+\ The old version used `write-file`/`read-file` (0xd6/0xd7) with a guessed `value slot`
+\ operand model and CRASHED the robot (stack underflow). Ground truth from OzoBlockly's
+\ Dev-mode "store shared variable into [0]" block: it compiles to `42 0 set` (value,
+\ register, `set` 0x93) -- the shared-variable registers are just low addresses reached
+\ with the ordinary `set`/`get` ops, no file API. Load is the symmetric `0 get` (0x92).
+evo
+42 0 set
+0 get 42 = if 0 127 0 led else 127 0 0 led then
+forever 100 wait loop

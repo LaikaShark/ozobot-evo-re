@@ -1,0 +1,421 @@
+===============================================================================
+                  FLASHFORTH ROBOT VERIFICATION CAMPAIGN
+===============================================================================
+
+  python3 ozobot.py flash examples/tests/t00_led_red.ff
+      fill terminal bg (works on WSL/headless); ENTER to flash
+
+THE LED ORACLE -- HOW A TEST REPORTS PASS/FAIL
+-------------------------------------------------------------------------------
+
+Most tests compute something and then self-report with the LED:
+
+  GREEN = PASS      the robot computed the expected result.
+  RED   = FAIL      it computed the wrong result (a real bug).
+  NONE  = no color  the program didn't run at all (reception failed, or the
+                    robot rejected the program -- e.g. a wrong capability byte).
+
+Oracle tests hold the color in an infinite loop, so it stays lit until you
+re-flash or power-cycle -- no need to catch a brief flash. Action tests
+(move/turn/audio) run once and stop.
+
+Run Block 1 first. The oracle depends on `if/else`, `=`, and `led` being
+correct; Block 1 proves those, so later GREEN/RED readings are trustworthy.
+
+no test emits opcode 0xC7 Safe to flash.
+
+
+===============================================================================
+BOCK 0 -- BASELINE (DOES FLASHING WORK AT ALL?) -- direct observation
+===============================================================================
+
+┌─────┬────────────────────────┬──────────────────────────────┬──────────────────────────────────────────┐
+│  #  │          File          │           Expected           │           Notes / fail meaning           │
+├─────┼────────────────────────┼──────────────────────────────┼──────────────────────────────────────────┤
+│ T00 │ t00_led_red.ff         │ LED turns solid red          │ Validates full flash->decode->run        │
+│     │                        │                              │ pipeline, led, literal push, end. No     │
+│     │                        │                              │ reaction -> flash not received (screen   │
+│     │                        │                              │ size/dim, placement, refresh) -- fix     │
+│     │                        │                              │ first. Wrong color -> encoding or led b  │
+│     │                        │                              │ g r order wrong.                         │
+├─────┼────────────────────────┼──────────────────────────────┼──────────────────────────────────────────┤
+│ T01 │ t01_blink_rgb.ff       │ red ~1s -> green ~1s -> blue │ wait timing + repeated led. Wrong order  │
+│     │                        │ ~1s, then stop (blue         │ -> led channel order. Wrong timing ->    │
+│     │                        │ latched)                     │ wait unit wrong (centiseconds; 100 wait  │
+│     │                        │                              │ = 1.0s).                                 │
+├─────┼────────────────────────┼──────────────────────────────┼──────────────────────────────────────────┤
+│ T02 │ t02_move_fwd.ff        │ drives forward ~50 mm, then  │ move (dist speed). No / wrong-direction  │
+│     │                        │ stops                        │ / curved motion -> move operand order or │
+│     │                        │                              │ units wrong.                             │
+├─────┼────────────────────────┼──────────────────────────────┼──────────────────────────────────────────┤
+│ T03 │ t03_turn.ff            │ rotates in place ~90 degrees │ turn (angle speed). No turn, != 90, or   │
+│     │                        │                              │ drives instead -> turn semantics wrong.  │
+├─────┼────────────────────────┼──────────────────────────────┼──────────────────────────────────────────┤
+│ T04 │ t04_spin_wheels.ff     │ spins in place ~1s (left     │ wheels (left right) + negative operand.  │
+│     │                        │ fwd, right rev), then stops  │ Same-way / no spin -> wheels order or    │
+│     │                        │                              │ -30 literal wrong (ties into T20).       │
+└─────┴────────────────────────┴──────────────────────────────┴──────────────────────────────────────────┘
+
+
+
+
+
+
+===============================================================================
+BOCK 1 -- CORE LANGUAGE -- LED oracle (run these first)
+===============================================================================
+
+┌─────┬────────────────────────┬──────────────────────────────┬──────────────────────────────────────────┐
+│  #  │          File          │           Expected           │           Notes / fail meaning           │
+├─────┼────────────────────────┼──────────────────────────────┼──────────────────────────────────────────┤
+│ T10 │ t10_add.ff             │ 2 3 + 5 = -> GREEN           │ Validates +                              │
+├─────┼────────────────────────┼──────────────────────────────┼──────────────────────────────────────────┤
+│ T11 │ t11_arith_chain.ff     │ (2+3)*4 == 20 -> GREEN       │ Validates +, *, ordering                 │
+├─────┼────────────────────────┼──────────────────────────────┼──────────────────────────────────────────┤
+│ T12 │ t12_mod.ff             │ 20 mod 6 == 2 -> GREEN       │ Validates mod                            │
+├─────┼────────────────────────┼──────────────────────────────┼──────────────────────────────────────────┤
+│ T13 │ t13_div.ff             │ 17 / 5 == 3 -> GREEN         │ Validates / (integer)                    │
+├─────┼────────────────────────┼──────────────────────────────┼──────────────────────────────────────────┤
+│ T14 │ t14_gt_true.ff         │ 7 > 3 (true) -> GREEN        │ Validates > true path                    │
+├─────┼────────────────────────┼──────────────────────────────┼──────────────────────────────────────────┤
+│ T15 │ t15_gt_false.ff        │ 3 > 7 (false) -> GREEN       │ Validates > false path + else. GREEN     │
+│     │                        │                              │ confirms else routing and false = 0.     │
+├─────┼────────────────────────┼──────────────────────────────┼──────────────────────────────────────────┤
+│ T16 │ t16_logic_and.ff       │ (1 and 0) == 0 -> GREEN      │ Validates logical and                    │
+├─────┼────────────────────────┼──────────────────────────────┼──────────────────────────────────────────┤
+│ T17 │ t17_repeat3.ff         │ LED blinks green exactly 3   │ repeat...loop counted loop + required    │
+│     │                        │ times, then stops            │ drop. Wrong count -> counter math. Never │
+│     │                        │                              │ stops / garbage -> drop after loop off,  │
+│     │                        │                              │ or branch resolution broken.             │
+├─────┼────────────────────────┼──────────────────────────────┼──────────────────────────────────────────┤
+│ T18 │ t18_while5.ff          │ LED blinks blue exactly 5    │ while dup 0 > do ... 1 - loop countdown. │
+│     │                        │ times, then stops            │ Wrong count / runaway -> while/do/loop   │
+│     │                        │                              │ branch patching or -/dup/> wrong.        │
+├─────┼────────────────────────┼──────────────────────────────┼──────────────────────────────────────────┤
+│ T19 │ t19_colon_call.ff      │ GREEN (held)                 │ colon def :grn ... ; + call. RED /       │
+│     │                        │                              │ nothing -> call/; address handling or    │
+│     │                        │                              │ def-skip jump prefix wrong.              │
+└─────┴────────────────────────┴──────────────────────────────┴──────────────────────────────────────────┘
+
+All BOCK 1 expected GREEN. RED -> that operator is wrong. NONE -> BOCK 0
+reception issue; don't trust oracle results until T00 works.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+===============================================================================
+BOCK 2 -- THE CRITICAL FIXES (highest-value tests)
+===============================================================================
+
+┌─────┬────────────────────────┬──────────────────────────────┬──────────────────────────────────────────┐
+│  #  │          File          │           Expected           │           Notes / fail meaning           │
+├─────┼────────────────────────┼──────────────────────────────┼──────────────────────────────────────────┤
+│ T20 │ t20_neg_literal.ff     │ -5 5 + 0 = -> GREEN          │ KEY: negative-literal encoding. -5       │
+│     │                        │                              │ compiles to 04 83 (push 4, bitwise-NOT). │
+│     │                        │                              │ GREEN -> neg->~ fix correct on hardware. │
+│     │                        │                              │ RED -> computing -4 (old neg/0x8b bug)   │
+│     │                        │                              │ or 0x83 not bitwise-NOT on firmware.     │
+│     │                        │                              │ Single most important result.            │
+├─────┼────────────────────────┼──────────────────────────────┼──────────────────────────────────────────┤
+│ T21 │ t21_neg_abs.ff         │ -100 abs 100 = -> GREEN      │ abs of a negative literal. RED ->        │
+│     │                        │                              │ negative literal or abs wrong.           │
+├─────┼────────────────────────┼──────────────────────────────┼──────────────────────────────────────────┤
+│ T22 │ t22_neg_move.ff        │ drives backward ~40 mm       │ negative distance in a real motion op.   │
+│     │                        │                              │ Forward / none -> negative value         │
+│     │                        │                              │ handling wrong end-to-end.               │
+├─────┼────────────────────────┼──────────────────────────────┼──────────────────────────────────────────┤
+│ T23 │ t23_vbank2_battery.ff  │ GREEN (battery reads > 0)    │ KEY: capability byte V (bank 2). readReg │
+│     │                        │                              │ (0xce) is bank-2 so header must carry    │
+│     │                        │                              │ V=2 (auto). NONE -> robot rejected       │
+│     │                        │                              │ program (V wrong, or readReg != 0xce).   │
+│     │                        │                              │ RED -> ran but battery read 0 (odd; note │
+│     │                        │                              │ it).                                     │
+├─────┼────────────────────────┼──────────────────────────────┼──────────────────────────────────────────┤
+│ T24 │ t24_vbank5_audio.ff    │ short tone, then GREEN held  │ capability byte V (bank 5). beep-wait    │
+│     │                        │                              │ (0xd3) is bank 5 -> V=5. NONE ->         │
+│     │                        │                              │ rejected (V wrong). Tone but no green,   │
+│     │                        │                              │ or green but no tone -> note which;      │
+│     │                        │                              │ isolates audio vs capability.            │
+└─────┴────────────────────────┴──────────────────────────────┴──────────────────────────────────────────┘
+
+
+===============================================================================
+BOCK 3 -- BITWISE & SHIFT
+===============================================================================
+
+┌─────┬────────────────────────┬──────────────────────────────┬──────────────────────────────────────────┐
+│  #  │          File          │           Expected           │           Notes / fail meaning           │
+├─────┼────────────────────────┼──────────────────────────────┼──────────────────────────────────────────┤
+│ T30 │ t30_and_bitwise.ff     │ 6 & 3 == 2 -> GREEN          │ AND 0x81                                 │
+├─────┼────────────────────────┼──────────────────────────────┼──────────────────────────────────────────┤
+│ T31 │ t31_or_bitwise.ff      │ 4 | 1 == 5 -> GREEN          │ OR 0x82                                  │
+├─────┼────────────────────────┼──────────────────────────────┼──────────────────────────────────────────┤
+│ T32 │ t32_xor_bitwise.ff     │ 6 ^ 3 == 5 -> GREEN          │ XOR 0x84                                 │
+├─────┼────────────────────────┼──────────────────────────────┼──────────────────────────────────────────┤
+│ T33 │ t33_shl.ff             │ 3 shl == 6 -> GREEN          │ HYPOTHESIS: shl (0xbc) is shift-by-one   │
+│     │                        │                              │ (x2). GREEN confirms. RED -> different   │
+│     │                        │                              │ semantics (shift-by-N, or needs editor   │
+│     │                        │                              │ loop scaffolding); info, not necessarily │
+│     │                        │                              │ a bug.                                   │
+├─────┼────────────────────────┼──────────────────────────────┼──────────────────────────────────────────┤
+│ T34 │ t34_shr.ff             │ 12 shr == 6 -> GREEN         │ HYPOTHESIS: shr (0xbd) is shift-by-one   │
+│     │                        │                              │ (/2). GREEN confirms. RED -> different   │
+│     │                        │                              │ semantics; report, and note produced     │
+│     │                        │                              │ value if possible.                       │
+└─────┴────────────────────────┴──────────────────────────────┴──────────────────────────────────────────┘
+
+Expected GREEN. RED on T30-T32 -> that bitwise opcode is wrong. RED on T33/T34
+is information (semantics differ from our guess), not necessarily a bug.
+
+
+
+
+===============================================================================
+BOCK 4 -- EVO AUDIO (needs to hear the speaker)
+===============================================================================
+
+┌─────┬────────────────────────┬──────────────────────────────┬──────────────────────────────────────────┐
+│  #  │          File          │           Expected           │           Notes / fail meaning           │
+├─────┼────────────────────────┼──────────────────────────────┼──────────────────────────────────────────┤
+│ T40 │ t40_note.ff            │ a ~0.5s tone                 │ 60 note 50 0 beep (middle C,             │
+│     │                        │                              │ non-blocking). Silence -> note/beep      │
+│     │                        │                              │ operand model wrong, or audio bank not   │
+│     │                        │                              │ accepted.                                │
+├─────┼────────────────────────┼──────────────────────────────┼──────────────────────────────────────────┤
+│ T41 │ t41_note_seq.ff        │ rising 3-note arpeggio       │ three blocking notes. One blurred tone / │
+│     │                        │ C-E-G, notes separated       │ silence -> beep-wait (blocking, bank 5)  │
+│     │                        │                              │ not working.                             │
+├─────┼────────────────────────┼──────────────────────────────┼──────────────────────────────────────────┤
+│ T42 │ t42_raw_beep.ff        │ some tone (guess)            │ EXPLORATORY: frequency encoding. Raw 1   │
+│     │                        │                              │ 100 40 0 beep (frequency bytes). Report: │
+│     │                        │                              │ did it beep, and pitch vs T40.           │
+│     │                        │                              │ Characterizes the (fHi fLo) format.      │
+├─────┼────────────────────────┼──────────────────────────────┼──────────────────────────────────────────┤
+│ T43 │ t43_play_file.ff       │ any sound/word, or silence   │ EXPLORATORY: built-in sound id. 0 0 0 1  │
+│     │                        │                              │ 1 play-file. Report what played. Pins    │
+│     │                        │                              │ the (skinHi skinLo nameHi nameLo type)   │
+│     │                        │                              │ convention.                              │
+└─────┴────────────────────────┴──────────────────────────────┴──────────────────────────────────────────┘
+
+
+===============================================================================
+BOCK 5 -- EVO SENSORS / REGISTERS
+===============================================================================
+
+┌─────┬────────────────────────┬──────────────────────────────┬──────────────────────────────────────────┐
+│  #  │          File          │           Expected           │           Notes / fail meaning           │
+├─────┼────────────────────────┼──────────────────────────────┼──────────────────────────────────────────┤
+│ T50 │ t50_battery_threshold. │ GREEN if battery > 20        │ GREEN on a charged robot; RED only if    │
+│     │ ff                     │                              │ nearly flat.                             │
+├─────┼────────────────────────┼──────────────────────────────┼──────────────────────────────────────────┤
+│ T51 │ t51_firmware.ff        │ GREEN (firmware reg nonzero) │ readReg returns real register data. RED  │
+│     │                        │                              │ (read 0) or NONE (rejected) -> readReg / │
+│     │                        │                              │ register id wrong.                       │
+├─────┼────────────────────────┼──────────────────────────────┼──────────────────────────────────────────┤
+│ T52 │ t52_surface_color.ff   │ GREEN if it reads a RED      │ EXPLORATORY: place robot on red paper.   │
+│     │                        │ surface                      │ GREEN on red / RED on other colors       │
+│     │                        │                              │ confirms EV_SURFACE checkEvent. Always   │
+│     │                        │                              │ RED -> color read path or color-code     │
+│     │                        │                              │ value differs; note it.                  │
+├─────┼────────────────────────┼──────────────────────────────┼──────────────────────────────────────────┤
+│ T53 │ t53_charger.ff         │ GREEN if charger reg nonzero │ EXPLORATORY: report LED on the charger   │
+│     │                        │                              │ vs off it. Tells whether REG_CHARGER +   │
+│     │                        │                              │ readReg reflect charger state.           │
+└─────┴────────────────────────┴──────────────────────────────┴──────────────────────────────────────────┘
+
+
+===============================================================================
+BOCK 6 -- INTERACTIVE
+===============================================================================
+
+┌─────┬────────────────────────┬──────────────────────────────┬──────────────────────────────────────────┐
+│  #  │          File          │           Expected           │           Notes / fail meaning           │
+├─────┼────────────────────────┼──────────────────────────────┼──────────────────────────────────────────┤
+│ T60 │ t60_button.ff          │ idle, then GREEN after top   │ Loops forever (power-cycle to end).      │
+│     │                        │ button press                 │ Never greens -> EV_BUTTON / checkEvent   │
+│     │                        │                              │ wrong.                                   │
+└─────┴────────────────────────┴──────────────────────────────┴──────────────────────────────────────────┘
+
+
+===============================================================================
+BOCK 7 -- IR COMMUNICATION (needs TWO Evo robots)
+===============================================================================
+
+Flash T70 to robot A and T71 to robot B, then place them facing each other.
+
+┌─────┬────────────────────────┬──────────────────────────────┬──────────────────────────────────────────┐
+│  #  │          File          │           Expected           │           Notes / fail meaning           │
+├─────┼────────────────────────┼──────────────────────────────┼──────────────────────────────────────────┤
+│ T70 │ t70_ir_send.ff         │ robot A: broadcasts value 55 │ Flash to robot A. Pairs with T71.        │
+│     │                        │ (front emitter)              │                                          │
+├─────┼────────────────────────┼──────────────────────────────┼──────────────────────────────────────────┤
+│ T71 │ t71_ir_recv.ff         │ robot B: GREEN when it       │ Flash to robot B; face them. B greens    │
+│     │                        │ receives 55                  │ while A broadcasts nearby. Never greens  │
+│     │                        │                              │ -> writeReg/readReg IR register offsets  │
+│     │                        │                              │ or emitter enable wrong. Skip if no 2nd  │
+│     │                        │                              │ robot.                                   │
+└─────┴────────────────────────┴──────────────────────────────┴──────────────────────────────────────────┘
+
+
+===============================================================================
+BOCK 8 -- EXPLORATORY (uncertain semantics -- feedback wanted)
+===============================================================================
+
+These exercise opcodes whose exact conventions we could not fully pin from the
+compiler. RED / no-op here is information, not necessarily a bug.
+
+┌─────┬────────────────────────┬──────────────────────────────┬──────────────────────────────────────────┐
+│  #  │          File          │           Expected           │           Notes / fail meaning           │
+├─────┼────────────────────────┼──────────────────────────────┼──────────────────────────────────────────┤
+│ T80 │ t80_next_intersection. │ follows line, GREEN at an    │ Needs a black line/intersection. Enables │
+│     │ ff                     │ intersection                 │ line following, calls next-intersection, │
+│     │                        │                              │ then GREEN. Report: does it follow and   │
+│     │                        │                              │ stop/green at an intersection, or ignore │
+│     │                        │                              │ it? May need the editor's nav            │
+│     │                        │                              │ scaffolding.                             │
+├─────┼────────────────────────┼──────────────────────────────┼──────────────────────────────────────────┤
+│ T81 │ t81_file_roundtrip.ff  │ GREEN if 42 written to slot  │ Persistent-storage guess (value slot     │
+│     │                        │ 0 reads back equal           │ order). GREEN = works as guessed, RED =  │
+│     │                        │                              │ ran but mismatched (different order),    │
+│     │                        │                              │ NONE = rejected. Any result pins the     │
+│     │                        │                              │ write-file/read-file API.                │
+└─────┴────────────────────────┴──────────────────────────────┴──────────────────────────────────────────┘
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+===============================================================================
+RESULTS LOG
+===============================================================================
+
+┌───────┬───────────────────────────┬──────────────────────────────────────────┐
+│  Test │  Result (GREEN/RED/NONE)  │                Comments                  │
+├───────┼───────────────────────────┼──────────────────────────────────────────┤
+│ T00   │                           │                                          │
+├───────┼───────────────────────────┼──────────────────────────────────────────┤
+│ T01   │                           │                                          │
+├───────┼───────────────────────────┼──────────────────────────────────────────┤
+│ T02   │                           │                                          │
+├───────┼───────────────────────────┼──────────────────────────────────────────┤
+│ T03   │                           │                                          │
+├───────┼───────────────────────────┼──────────────────────────────────────────┤
+│ T04   │                           │                                          │
+├───────┼───────────────────────────┼──────────────────────────────────────────┤
+│ T10   │                           │                                          │
+├───────┼───────────────────────────┼──────────────────────────────────────────┤
+│ T11   │                           │                                          │
+├───────┼───────────────────────────┼──────────────────────────────────────────┤
+│ T12   │                           │                                          │
+├───────┼───────────────────────────┼──────────────────────────────────────────┤
+│ T13   │                           │                                          │
+├───────┼───────────────────────────┼──────────────────────────────────────────┤
+│ T14   │                           │                                          │
+├───────┼───────────────────────────┼──────────────────────────────────────────┤
+│ T15   │                           │                                          │
+├───────┼───────────────────────────┼──────────────────────────────────────────┤
+│ T16   │                           │                                          │
+├───────┼───────────────────────────┼──────────────────────────────────────────┤
+│ T17   │                           │                                          │
+├───────┼───────────────────────────┼──────────────────────────────────────────┤
+│ T18   │                           │                                          │
+├───────┼───────────────────────────┼──────────────────────────────────────────┤
+│ T19   │                           │                                          │
+├───────┼───────────────────────────┼──────────────────────────────────────────┤
+│ T20   │                           │    negative-literal fix                  │
+├───────┼───────────────────────────┼──────────────────────────────────────────┤
+│ T21   │                           │                                          │
+├───────┼───────────────────────────┼──────────────────────────────────────────┤
+│ T22   │                           │                                          │
+├───────┼───────────────────────────┼──────────────────────────────────────────┤
+│ T23   │                           │    capability byte V (bank 2)            │
+├───────┼───────────────────────────┼──────────────────────────────────────────┤
+│ T24   │                           │    capability byte V (bank 5)            │
+├───────┼───────────────────────────┼──────────────────────────────────────────┤
+│ T30   │                           │                                          │
+├───────┼───────────────────────────┼──────────────────────────────────────────┤
+│ T31   │                           │                                          │
+├───────┼───────────────────────────┼──────────────────────────────────────────┤
+│ T32   │                           │                                          │
+├───────┼───────────────────────────┼──────────────────────────────────────────┤
+│ T33   │                           │    shift semantics                       │
+├───────┼───────────────────────────┼──────────────────────────────────────────┤
+│ T34   │                           │    shift semantics                       │
+├───────┼───────────────────────────┼──────────────────────────────────────────┤
+│ T40   │                           │                                          │
+├───────┼───────────────────────────┼──────────────────────────────────────────┤
+│ T41   │                           │                                          │
+├───────┼───────────────────────────┼──────────────────────────────────────────┤
+│ T42   │                           │    audio freq                            │
+├───────┼───────────────────────────┼──────────────────────────────────────────┤
+│ T43   │                           │    file id                               │
+├───────┼───────────────────────────┼──────────────────────────────────────────┤
+│ T50   │                           │                                          │
+└───────┴───────────────────────────┴──────────────────────────────────────────┘
+
+┌───────┬───────────────────────────┬──────────────────────────────────────────┐
+│ T51   │                           │                                          │
+├───────┼───────────────────────────┼──────────────────────────────────────────┤
+│ T52   │                           │                                          │
+├───────┼───────────────────────────┼──────────────────────────────────────────┤
+│ T53   │                           │                                          │
+├───────┼───────────────────────────┼──────────────────────────────────────────┤
+│ T60   │                           │                                          │
+├───────┼───────────────────────────┼──────────────────────────────────────────┤
+│ T70   │                           │                                          │
+├───────┼───────────────────────────┼──────────────────────────────────────────┤
+│ T71   │                           │                                          │
+├───────┼───────────────────────────┼──────────────────────────────────────────┤
+│ T80   │                           │    nav                                   │
+├───────┼───────────────────────────┼──────────────────────────────────────────┤
+│ T81   │                           │    files                                 │
+└───────┴───────────────────────────┴──────────────────────────────────────────┘
+
+priority:
+T20 (negative-literal fix), 
+T23/T24 (the V capability byte, whether the robot accepts bank-2/5 programs)
+T33/T34, T42/T43, T52/T53, T80/T81 (exploratory tests)

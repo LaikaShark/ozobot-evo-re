@@ -1,0 +1,8 @@
+\ Count down from 5, nudging the LED brighter each pass (repeat leaves the
+\ counter on the stack, so drop it before ending).
+5 repeat
+  0 127 0 led  30 wait
+  0 0 0 led    30 wait
+loop
+drop
+OFF end
